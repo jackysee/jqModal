@@ -105,7 +105,10 @@
 			t = t || window.event,
 			z = (parseInt(e.css('z-index'))),
 			z = (z > 0) ? z : 3000,
-			v = $('<div></div>').addClass(o.overlayClass).css({height:'100%',width:'100%',position:'fixed',left:0,top:0,'z-index':z-1,opacity:o.overlay/100}),
+			v = $('<div></div>')
+			    .attr("data-jqmodal-overlay", "")
+			    .addClass(o.overlayClass)
+			    .css({height:'100%',width:'100%',position:'fixed',left:0,top:0,'z-index':z-1,opacity:o.overlay/100}),
 		
 			// maintain legacy "hash" construct
 			h = {w: e, c: o, o: v, t: t};	
@@ -157,9 +160,16 @@
 		//  o: (jQuery object) The overlay element
 		//  t: (DOM object) The triggering element
 		
-		// display the overlay (prepend to body) if not disabled
-		if(hash.c.overlay > 0)
-			hash.o.prependTo('body');
+		// display the overlay if not disabled
+		if(hash.c.overlay > 0){
+		  var overlays = $('body').find("[data-jqmodal-overlay]");
+		  if(overlays.length){
+		    overlays.after(hash.o);
+		  }
+		  else{
+  			hash.o.prependTo('body');
+		  }
+		}
 			
 		// make modal visible
 		hash.w.show();
@@ -229,13 +239,17 @@
 			// mark modal as shown
 			e[0]._jqmShown = true;
 			
-			// if modal dialog 
+			// if modal dialog is last
 			//
 			// Bind the Keep Focus Function [F] if no other Modals are open (!A[0]) +
 			// Add this modal to the opened modals stack (A) for nested modal support
 			// 
 			// else, close dialog when overlay is clicked
-			if(o.modal){ !A[0]&&F('bind'); A.push(e); }
+			
+			if(o.modal){ 
+			    !A[0]&&F('bind'); A.push(e); 
+				
+			}
 			else e.jqmAddClose(v);
 			
 			//  Attach closing events to elements inside the modal matching closingClass
@@ -272,7 +286,13 @@
 			
 			 // If modal, remove from modal stack.
 			 // If no modals in modal stack, unbind the Keep Focus Function
-			 if(o.modal){A.pop();!A[0]&&F('unbind');}
+			 var lastModalID = A[A.length-1]? A[A.length-1].data('jqm').ID : undefined;
+			 if(h.w.data('jqm').ID === lastModalID){
+			     A.pop();
+			     if(!A[0]){
+			         F('unbind');
+			     }
+			}
 			 
 			 // IF toTop was passed and an overlay exists;
 			 //  Move modal back to its "remembered" position.
@@ -291,10 +311,10 @@
 		// X: The Focus Examination Function (for modal: true dialogs)
 
 		var modal = $(e.target).data('jqm') || $(e.target).parents('.jqm-init:first').data('jqm'),
-			activeModal = A[A.length-1].data('jqm');
+			activeModal = A[A.length-1];
 		
-		// allow bubbling if event target is within active modal dialog
-		if(modal && modal.ID == activeModal.ID) return true; 
+		// allow bubbling if event target is above the active modal dialog
+		if(modal && modal.ID >= activeModal.data('jqm').ID) return true; 
 
 		// else, trigger focusFunc (focus on first input element and halt bubbling)
 		return $.jqm.focusFunc(activeModal);
